@@ -26,26 +26,30 @@ export default function Home() {
           crossorigin="anonymous"
         ></link>
       </Head>
+
       <main className="container">
-        <table class="table">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Found On</th>
-              <th>Location</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data &&
-              data.data.map((data) => (
-                <tr>
-                  <td>{data.name}</td>
-                  <td>{data.foundDate}</td>
-                  <td>{data.location}</td>
-                </tr>
-              ))}
-          </tbody>
-        </table>
+        <div className="grid">
+          {data &&
+            data.data.map((data) => (
+              <div>
+                <div className="card">
+                  <div className="card-image">
+                    <figure className="image is-4by3">
+                      <img src={data.imageSrc} alt={data.name} />
+                    </figure>
+                  </div>
+                  <div className="card-content">
+                    <p className="title is-4">{data.name}</p>
+                    <div className="content">
+                      {data.location}
+                      <br />
+                      <time>{data.foundDate}</time>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+        </div>
       </main>
     </>
   );

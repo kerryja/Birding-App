@@ -1,4 +1,41 @@
-const API_KEY = process.env.API_KEY;
+const EBIRD_API_KEY = process.env.API_KEY;
+
+const fetchImage = async (birdName) => {
+  const userAgent = "birding-app/1.0 (me@kerry.dev) node.js/next.js";
+  try {
+    const url = `https://en.wikipedia.org/w/api.php?action=query&format=json&titles=${encodeURIComponent(
+      birdName
+    )}&prop=imageinfo&redirects=1&generator=images&iiprop=url&gimlimit=5`;
+    const response = await fetch(url, {
+      headers: {
+        "User-Agent": userAgent,
+      },
+    });
+
+    const imageResponseJSON = await response.json();
+    if (imageResponseJSON.query && imageResponseJSON.query.pages) {
+      const imagePages = imageResponseJSON.query.pages;
+
+      const imageUrls = Object.values(imagePages)
+        .filter(
+          (i) =>
+            i.imageinfo &&
+            i.imageinfo.length > 0 &&
+            i.imageinfo[0].url &&
+            i.imagerepository === "shared" &&
+            i.imageinfo[0].url.slice(-3) === "jpg" &&
+            i.title.toLowerCase().includes("caribou") === false
+        )
+        .map((i) => i.imageinfo[0].url);
+
+      const imageURL = imageUrls.length > 0 ? imageUrls[0] : "";
+      return imageURL;
+    }
+    return "";
+  } catch (err) {
+    console.log(err);
+  }
+};
 
 export default async ({ query: { geolocation } }, res) => {
   try {
@@ -7,17 +44,27 @@ export default async ({ query: { geolocation } }, res) => {
     coords = { latitude: latLon[0], longitude: latLon[1] };
 
     const response = await fetch(
-      `https://api.ebird.org/v2/data/obs/geo/recent/notable?back=7&maxResults=200&lat=${coords.latitude}&lng=${coords.longitude}&key=${API_KEY}`
+      `https://api.ebird.org/v2/data/obs/geo/recent/notable?back=1&maxResults=100&lat=${coords.latitude}&lng=${coords.longitude}&key=${EBIRD_API_KEY}`
     );
     const responseJSON = await response.json();
-    console.log(responseJSON.map((response) => response.comName));
-    const data = responseJSON.map((response) => {
-      return {
-        name: response.comName,
-        foundDate: response.obsDt,
-        location: response.locName,
-      };
-    });
+
+    const data = await Promise.all(
+      responseJSON.map(async (response) => {
+        return {
+          name:
+            response.comName.includes("(") === true
+              ? response.comName.substring(0, response.comName.indexOf("(") - 1)
+              : response.comName,
+          foundDate: response.obsDt,
+          location: response.locName,
+          imageSrc: await fetchImage(
+            response.comName.includes("(") === true
+              ? response.comName.substring(0, response.comName.indexOf("(") - 1)
+              : response.comName
+          ),
+        };
+      })
+    );
     return res.status(200).json({
       data,
     });
