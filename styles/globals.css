@@ -1,6 +1,21 @@
 .grid {
 	display: grid;
-	grid-template-columns: 1fr 1fr 1fr;
+	grid-template-columns: 1fr 1fr 1fr 1fr;
 	grid-column-gap: 1em;
 	grid-row-gap: 1em;
+}
+
+@media only screen and (max-width: 800px) {
+	.grid {
+	grid-template-columns: 1fr;
+	}
+}
+
+.container {
+	margin-top: 4em;
+}
+
+img {
+	object-fit: contain;
+	background: black;
 }
