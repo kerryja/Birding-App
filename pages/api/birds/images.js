@@ -1,7 +1,8 @@
 const fs = require("fs/promises");
 const path = require("path");
+const os = require("os");
 
-const baseDirectory = path.resolve(__dirname, "images");
+const baseDirectory = path.resolve(os.tmpdir(), "birding-images");
 
 const makePath = (birdName) => path.resolve(baseDirectory, `${birdName}.jpg`);
 
@@ -67,7 +68,6 @@ export default async ({ query: { birdName } }, res) => {
     const wikipediaUrl = await fetchImage(birdName);
     if (wikipediaUrl) {
       await downloadImage(wikipediaUrl, path);
-      console.log(path);
       return res.send(await fs.readFile(path));
     } else {
       res.status(404).send(`URL for ${birdName} Not Found`);

@@ -9,3 +9,14 @@ datasource db {
 generator client {
   provider = "prisma-client-js"
 }
+
+model Bird {
+  id        Int     @default(autoincrement()) @id
+  name      String
+}
+
+model LocationInfo {
+  id        Int     @default(autoincrement()) @id
+  locId     String  @unique
+  location  String
+}

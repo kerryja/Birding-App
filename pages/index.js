@@ -23,7 +23,7 @@ export default function Home() {
         <link
           rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.9.2/css/bulma.min.css"
-          crossorigin="anonymous"
+          crossOrigin="anonymous"
         ></link>
       </Head>
       <nav
@@ -55,7 +55,7 @@ export default function Home() {
       </nav>
 
       <main className="container">
-        <div className="title">Notable Birds Found Nearby</div>
+        <div className="title">Recent Sightings Nearby</div>
         <div className="grid">
           {data &&
             data.data

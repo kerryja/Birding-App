@@ -1,19 +1,43 @@
+import prisma from "../../../lib/prisma";
+
 const EBIRD_API_KEY = process.env.API_KEY;
 import moment from "moment";
 const fs = require("fs");
 const fetch = require("node-fetch");
 
-const reverseGeocode = async (coords) => {
+const reverseGeocode = async (lat, long, locId = "locId") => {
   try {
+    const locInfo = await prisma.locationInfo.findUnique({
+      where: {
+        locId,
+      },
+    });
+    if (locInfo) return locInfo.location;
+
     const url = `https://geocode.xyz/?locate=${encodeURIComponent(
-      coords
+      `${lat},${long}`
     )}&json=1`;
     const response = await fetch(url);
     const responseJSON = await response.json();
-    console.log(responseJSON);
-    return responseJSON.osmtags.wikipedia
-      ? responseJSON.osmtags.wikipedia.substring(3)
-      : `${responseJSON.city}, ${responseJSON.statename}`;
+    if (responseJSON.error) return "";
+
+    const location =
+      responseJSON.osmtags && responseJSON.osmtags.wikipedia
+        ? responseJSON.osmtags.wikipedia.substring(3)
+        : `${responseJSON.city}, ${responseJSON.statename}`;
+    await prisma.locationInfo.upsert({
+      where: {
+        locId,
+      },
+      create: {
+        locId,
+        location,
+      },
+      update: {
+        location,
+      },
+    });
+    return location;
   } catch (error) {
     console.log(error);
   }
@@ -26,7 +50,7 @@ export default async ({ query: { geolocation } }, res) => {
     coords = { latitude: latLon[0], longitude: latLon[1] };
 
     const response = await fetch(
-      `https://api.ebird.org/v2/data/obs/geo/recent/notable?back=7&maxResults=10&lat=${coords.latitude}&lng=${coords.longitude}&key=${EBIRD_API_KEY}`
+      `https://api.ebird.org/v2/data/obs/geo/recent/notable?back=7&maxResults=20&lat=${coords.latitude}&lng=${coords.longitude}&key=${EBIRD_API_KEY}`
     );
     const responseJSON = await response.json();
     //filtering out duplicate bird names
@@ -60,13 +84,24 @@ export default async ({ query: { geolocation } }, res) => {
         const formattedBirdName = response.comName.includes("(")
           ? removeParentheses(response.comName)
           : response.comName;
+
+        const location = await reverseGeocode(
+          response.lat,
+          response.lng,
+          response.locId
+        );
+        const homeLocation = await reverseGeocode(
+          coords.latitude,
+          coords.longitude
+        );
+
         return {
           name: formattedBirdName,
           foundDate: formatDate(
             response.obsDt.substring(0, response.obsDt.indexOf(" "))
           ),
           foundTime: response.obsDt.slice(10),
-          location: await reverseGeocode(`${response.lat},${response.lng}`),
+          location,
           imageSrc: `/api/birds/images?birdName=${formattedBirdName}`,
         };
       })
