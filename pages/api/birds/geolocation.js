@@ -1,9 +1,10 @@
-import prisma from "../../../lib/prisma";
-
 const EBIRD_API_KEY = process.env.API_KEY;
 import moment from "moment";
 const fs = require("fs");
 const fetch = require("node-fetch");
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
 
 const reverseGeocode = async (lat, long, locId = "locId") => {
   try {
