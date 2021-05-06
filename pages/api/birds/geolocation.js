@@ -6,14 +6,16 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-const reverseGeocode = async (lat, long, locId = "locId") => {
+const reverseGeocode = async (lat, long, locId) => {
   try {
-    const locInfo = await prisma.locationInfo.findUnique({
-      where: {
-        locId,
-      },
-    });
-    if (locInfo) return locInfo.location;
+    if (locId) {
+      const locInfo = await prisma.locationInfo.findUnique({
+        where: {
+          locId,
+        },
+      });
+      if (locInfo) return locInfo.location;
+    }
 
     const url = `https://geocode.xyz/?locate=${encodeURIComponent(
       `${lat},${long}`
@@ -26,18 +28,20 @@ const reverseGeocode = async (lat, long, locId = "locId") => {
       responseJSON.osmtags && responseJSON.osmtags.wikipedia
         ? responseJSON.osmtags.wikipedia.substring(3)
         : `${responseJSON.city}, ${responseJSON.statename}`;
-    await prisma.locationInfo.upsert({
-      where: {
-        locId,
-      },
-      create: {
-        locId,
-        location,
-      },
-      update: {
-        location,
-      },
-    });
+    if (locId) {
+      await prisma.locationInfo.upsert({
+        where: {
+          locId,
+        },
+        create: {
+          locId,
+          location,
+        },
+        update: {
+          location,
+        },
+      });
+    }
     return location;
   } catch (error) {
     console.log(error);
@@ -80,7 +84,12 @@ export default async ({ query: { geolocation } }, res) => {
       console.log(time);
     };
 
-    const data = await Promise.all(
+    const homeLocation = await reverseGeocode(
+      coords.latitude,
+      coords.longitude
+    );
+
+    const birdData = await Promise.all(
       uniqueResponseJSON.map(async (response) => {
         const formattedBirdName = response.comName.includes("(")
           ? removeParentheses(response.comName)
@@ -90,10 +99,6 @@ export default async ({ query: { geolocation } }, res) => {
           response.lat,
           response.lng,
           response.locId
-        );
-        const homeLocation = await reverseGeocode(
-          coords.latitude,
-          coords.longitude
         );
 
         return {
@@ -108,7 +113,8 @@ export default async ({ query: { geolocation } }, res) => {
       })
     );
     return res.status(200).json({
-      data,
+      birdData,
+      homeLocation,
     });
   } catch (error) {
     console.log(error);

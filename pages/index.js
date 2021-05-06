@@ -55,10 +55,12 @@ export default function Home() {
       </nav>
 
       <main className="container">
-        <div className="title">Recent Sightings Nearby</div>
+        <div className="title">
+          Recent Sightings {data ? `Near ${data.homeLocation}` : "Nearby"}
+        </div>
         <div className="grid">
           {data &&
-            data.data
+            data.birdData
               .filter((d) => !!d.imageSrc)
               .map((data) => (
                 <div>

@@ -1,6 +1,7 @@
 const fs = require("fs/promises");
 const path = require("path");
 const os = require("os");
+const send = require("send");
 
 const baseDirectory = path.resolve(os.tmpdir(), "birding-images");
 
@@ -58,17 +59,23 @@ const exists = async (path) => {
   }
 };
 
-export default async ({ query: { birdName } }, res) => {
+export default async (req, res) => {
   try {
+    const birdName = req.query.birdName;
+    const sendFile = send(req, `${birdName}.jpg`, { root: baseDirectory });
     const path = makePath(birdName);
     if (await exists(path)) {
-      return res.send(await fs.readFile(path));
+      return sendFile.pipe(res);
     }
 
     const wikipediaUrl = await fetchImage(birdName);
     if (wikipediaUrl) {
       await downloadImage(wikipediaUrl, path);
-      return res.send(await fs.readFile(path));
+      /*
+        post-processing of image can happen here
+        image resize and blurhash 
+      */
+      return sendFile.pipe(res);
     } else {
       res.status(404).send(`URL for ${birdName} Not Found`);
     }
